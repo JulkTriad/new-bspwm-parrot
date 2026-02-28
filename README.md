@@ -1,7 +1,7 @@
-# auto bspwm-parrot
+# new bspwm-parrot
 ## Configuración de Entorno para Parrot OS con bspwm
 
-Este script de Bash automatiza la configuración de un entorno profesional para Parrot OS utilizando el gestor de ventanas en mosaico bspwm.
+Este script de Bash automatiza la configuración de un entorno limpio y profesional para Parrot OS utilizando el gestor de ventanas bspwm.
 
 ### Descripción
 El script realiza las siguientes acciones:
@@ -9,7 +9,7 @@ El script realiza las siguientes acciones:
 - Actualiza el sistema y lo mejora con parrot-upgrade.
 - Instala las dependencias necesarias para el entorno bspwm, Polybar y Picom.
 - Descarga y configura diversos repositorios necesarios.
-- Instala paquetes adicionales y aplicaciones útiles para hacking.
+- Instala paquetes adicionales y aplicaciones útiles para el pentesting.
 - Configura temas y plugins para una experiencia de usuario mejorada.
 - Limpia archivos temporales y realiza un reinicio opcional del sistema.
 
@@ -40,11 +40,11 @@ El script realiza las siguientes acciones:
 - Permisos de superusuario
 
 ### Uso
-Clone este repositorio y navegue al directorio del script.
+Para clonar este repositorio debe seguir esta instrucción: navegar al directorio del script luego ejecutarla.
 
 ```bash
-git clone https://github.com/kenllyacosta/auto-bspwm-parrot.git
-cd auto-bspwm-parrot
+git clone https://github.com/JulkTriad/new-bspwm-parrot.git
+cd new-bspwm-parrot
 ```
 
 Ejecute el script:
@@ -52,32 +52,21 @@ Ejecute el script:
 ```bash
 ./install.sh
 ```
-> Notas: Asegúrese de ejecutar el script como un usuario normal, no como root.
+> Notas: Estar seguro de ejecutar el script como un usuario normal, no como root.
+
 ###
 El script comentará la primera línea del archivo /etc/apt/sources.list si el archivo tiene solo dos líneas para evitar errores de actualización.
 Durante la ejecución, el script le pedirá que reinicie el sistema al final del proceso de instalación.
 
 ## Entorno
 
-### Escritorio
-![image](https://github.com/kenllyacosta/auto-bspwm-parrot/assets/7442445/32199466-888b-4416-82f0-03cf73450081)
-
-### Python2 y Phython3
-![image](https://github.com/kenllyacosta/auto-bspwm-parrot/assets/7442445/3a678901-ed95-4870-8c52-84236d931943)
-
-### Pip2 y Pip3
-![image](https://github.com/kenllyacosta/auto-bspwm-parrot/assets/7442445/27a9169d-13b5-4499-b725-34f29bd587c3)
-
-
-### Visual Studio Code
-![image](https://github.com/kenllyacosta/auto-bspwm-parrot/assets/7442445/f1505cb9-980f-4fd6-a027-cd7fb0a9a9cb)
-
-### Neovim
-![image](https://github.com/kenllyacosta/auto-bspwm-parrot/assets/7442445/874b772c-8f22-453e-af5e-aa183e4f623c)
+```
+Ya se ira subiendo las imagenes de como esta quedando el entorno, aun se sigue mejorando.
+```
 
 ## Contribuciones
 
-Si te apasiona la ciberseguridad y la automatización, únete a nosotros para mejorar el entorno de hacking con bspwm.
+Si te apasiona la ciberseguridad, únete para seguir mejorando el entorno de hacking con bspwm.
 
 Cómo puedes ayudar:
 
