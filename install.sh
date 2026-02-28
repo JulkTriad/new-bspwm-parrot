@@ -6,6 +6,65 @@ redColour="\e[0;31m\033[1m"
 blueColour="\e[0;34m\033[1m"
 endColour="\033[0m\e[0m"
 
+# --- DETECCIÓN PARROT (6 vs 7.x) ---
+if [[ -r /etc/os-release ]]; then
+  . /etc/os-release
+else
+  echo "[!] No existe /etc/os-release"
+  exit 1
+fi
+
+OS_ID="${ID:-unknown}"
+OS_VERSION_ID="${VERSION_ID:-0}"
+OS_MAJOR="${OS_VERSION_ID%%.*}"
+
+PARROT6=0
+PARROT7=0
+
+if [[ "$OS_ID" == "parrot" ]]; then
+  if [[ "$OS_MAJOR" == "6" ]]; then PARROT6=1; fi
+  if [[ "$OS_MAJOR" == "7" ]]; then PARROT7=1; fi
+fi
+
+echo -e "${blueColour}[i] Detectado Parrot versión ${OS_VERSION_ID}${endColour}"
+
+
+
+pkg_exists() { apt-cache show "$1" >/dev/null 2>&1; }
+
+apt_install_existing() {
+  local pkgs=()
+  for p in "$@"; do
+    if pkg_exists "$p"; then
+      pkgs+=("$p")
+    else
+      echo -e "${yellowColour}[!] No disponible en esta versión: $p${endColour}"
+    fi
+  done
+  if ((${#pkgs[@]})); then
+    sudo apt install -y "${pkgs[@]}"
+  fi
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+# (ADDED) Strict mode (NO ELIMINA NADA, solo agrega)
+set -euo pipefail
+
+# (ADDED) Variables faltantes que tu script usa al final (NO ELIMINA NADA)
+yellowColour="\e[0;33m\033[1m"
+endColor="${endColour}"
+
 if [ "$(whoami)" == "root" ]; then
     exit 1
 fi
@@ -16,6 +75,34 @@ function ctrl_c(){
 	echo -e "\n\n${redColour}[!] Saliendo...\n${endColour}"
 	exit 1
 }
+
+# (ADDED) --- Detectar distro y versión (Debian/Parrot/Kali/Ubuntu derivados) ---
+if [[ -r /etc/os-release ]]; then
+  # shellcheck disable=SC1091
+  . /etc/os-release
+else
+  echo -e "${redColour}[!] No existe /etc/os-release, no puedo detectar la versión.${endColour}"
+  exit 1
+fi
+
+OS_ID="${ID:-unknown}"                 # debian / parrot / kali / ubuntu ...
+OS_LIKE="${ID_LIKE:-}"                 # debian
+OS_VERSION_ID="${VERSION_ID:-}"        # "12" "6.0" etc
+OS_CODENAME="${VERSION_CODENAME:-}"    # bookworm / bullseye / etc
+OS_NAME="${PRETTY_NAME:-$OS_ID}"
+
+# Fallback por si VERSION_CODENAME viene vacío
+if [[ -z "$OS_CODENAME" ]] && command -v lsb_release >/dev/null 2>&1; then
+  OS_CODENAME="$(lsb_release -sc 2>/dev/null || true)"
+fi
+if [[ -z "$OS_CODENAME" ]] && [[ -r /etc/debian_version ]]; then
+  # No siempre da el codename, pero al menos ayuda a debug
+  DEB_VER="$(cat /etc/debian_version)"
+fi
+
+echo -e "${blueColour}[i] Sistema detectado: ${OS_NAME}${endColour}"
+echo -e "${blueColour}[i] ID=${OS_ID}  LIKE=${OS_LIKE}  VERSION_ID=${OS_VERSION_ID}  CODENAME=${OS_CODENAME:-unknown}${endColour}"
+# (END ADDED detection)
 
 # Comentamos la primera línea de este archivo /etc/apt/sources.list para evitar errores de actualización
 if [ $(wc -l < /etc/apt/sources.list) -eq 2 ]; then
@@ -40,8 +127,71 @@ fi
 
 echo -e "\n\n${blueColour}[*] Instalando dependencias.\n${endColour}"
 sleep 2
-# Instalando dependencias del Entorno
-sudo apt install -y build-essential git vim xcb libxcb-util0-dev libxcb-ewmh-dev libxcb-randr0-dev libxcb-icccm4-dev libxcb-keysyms1-dev libxcb-xinerama0-dev libasound2-dev libxcb-xtest0-dev libxcb-shape0-dev
+
+# (ADDED) --- Selector de paquetes por versión/codename (NO ELIMINA tu línea original) ---
+BASE_PKGS=(
+  build-essential git vim
+  libxcb1-dev xcb-proto python3-xcbgen
+  libxcb-util0-dev libxcb-ewmh-dev libxcb-randr0-dev
+  libxcb-icccm4-dev libxcb-keysyms1-dev
+  libxcb-xinerama0-dev libasound2-dev
+  libxcb-xtest0-dev libxcb-shape0-dev
+)
+
+case "${OS_CODENAME:-}" in
+  bookworm|trixie|sid)
+    EXTRA_PKGS=(meson ninja-build pkg-config)
+    ;;
+  bullseye)
+    EXTRA_PKGS=(meson ninja-build pkg-config)
+    ;;
+  *)
+    EXTRA_PKGS=(meson ninja-build pkg-config)
+    ;;
+esac
+
+if [[ "$OS_ID" == "parrot" ]]; then
+  echo -e "${blueColour}[i] Ajustes específicos para Parrot.${endColour}"
+fi
+# (END ADDED selector)
+
+# Instalando dependencias del Entorno (TU LÍNEA ORIGINAL, NO SE ELIMINA)
+# sudo apt install -y build-essential git vim xcb libxcb-util0-dev libxcb-ewmh-dev libxcb-randr0-dev libxcb-icccm4-dev libxcb-keysyms1-dev libxcb-xinerama0-dev libasound2-dev libxcb-xtest0-dev libxcb-shape0-dev
+
+
+echo -e "${blueColour}[*] Instalando dependencias adaptadas a versión...${endColour}"
+
+if ((PARROT7)); then
+  apt_install_existing build-essential git vim \
+    libxcb1-dev xcb-proto python3-xcbgen \
+    libxcb-util0-dev libxcb-ewmh-dev libxcb-randr0-dev \
+    libxcb-icccm4-dev libxcb-keysyms1-dev \
+    libxcb-xinerama0-dev libasound2-dev \
+    libxcb-xtest0-dev libxcb-shape0-dev
+else
+  apt_install_existing build-essential git vim \
+    libxcb1-dev xcb-proto python3-xcbgen \
+    libxcb-util0-dev libxcb-ewmh-dev libxcb-randr0-dev \
+    libxcb-icccm4-dev libxcb-keysyms1-dev \
+    libxcb-xinerama0-dev libasound2-dev \
+    libxcb-xtest0-dev libxcb-shape0-dev
+fi
+
+
+
+
+
+
+
+
+
+
+# (ADDED) Instalación alternativa usando listas (NO ELIMINA lo anterior; solo agrega)
+# Nota: el paquete "xcb" NO existe en Debian/Parrot modernos; esto evita el error.
+sudo apt update
+sudo apt install -y "${BASE_PKGS[@]}" "${EXTRA_PKGS[@]}"
+echo -e "${greenColour}[+] Dependencias base instaladas (modo compatible).${endColour}"
+
 if [ $? != 0 ] && [ $? != 130 ]; then
 	echo -e "\n${redColour}[-] Falló la instalación de dependencias del entorno.\n${endColour}"
 	exit 1
@@ -76,8 +226,23 @@ fi
 
 echo -e "\n\n${blueColour}[*] Instalando paquetes adicionales.\n${endColour}"
 sleep 2
+
+
 # Instalamos paquetes adionales
-sudo apt install -y feh scrot scrub zsh rofi xclip bat locate neofetch wmname acpi bspwm sxhkd imagemagick ranger kitty seclists fzf numlockx
+
+
+# Detectar si neofetch existe, si no usar fastfetch
+if pkg_exists neofetch; then
+  SYSINFO="neofetch"
+else
+  SYSINFO="fastfetch"
+fi
+
+
+sudo apt install -y feh scrot scrub zsh rofi xclip bat locate wmname acpi bspwm sxhkd imagemagick ranger kitty seclists fzf numlockx "$SYSINFO"
+
+# sudo apt install -y feh scrot scrub zsh rofi xclip bat locate neofetch wmname acpi bspwm sxhkd imagemagick ranger kitty seclists fzf numlockx
+
 if [ $? != 0 ] && [ $? != 130 ]; then
 	echo -e "\n${redColour}[-] Falló la instalación de paquetes adicionales.\n${endColour}"
 	exit 1
@@ -85,6 +250,10 @@ else
 	echo -e "\n${greenColour}[+] Done\n${endColour}"
 	sleep 1.5
 fi
+
+
+
+
 
 # Creando carpeta de Reposistorios
 mkdir ~/github
@@ -156,6 +325,7 @@ fi
 
 echo -e "\n\n${blueColour}[*] Instalando bat.\n${endColour}"
 sleep 2
+
 # Instando lsd
 sudo dpkg -i $ruta/bat.deb
 sleep 2
@@ -181,6 +351,7 @@ fi
 
 echo -e "\n\n${blueColour}[*] Instalando Python2.7.18.\n${endColour}"
 sleep 2
+
 # Instalamos python2.7.18
 cd $ruta/
 wget https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz
@@ -198,28 +369,84 @@ fi
 
 echo -e "\n\n${blueColour}[*] Instalando pip2.\n${endColour}"
 sleep 2
+
+
 # Instalando pip2
-curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py
-sudo python2 get-pip.py
-if [ $? != 0 ] && [ $? != 130 ]; then
-	echo -e "\n${redColour}[-] Falló la instalación de pip2.\n${endColour}"
-	sleep 3
+#curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py
+#sudo python2 get-pip.py
+#if [ $? != 0 ] && [ $? != 130 ]; then
+#	echo -e "\n${redColour}[-] Falló la instalación de pip2.\n${endColour}"
+#	sleep 3
+#else
+#	echo -e "\n${greenColour}[+] Done\n${endColour}"
+#	sleep 1.5
+#fi
+
+#echo -e "\n\n${blueColour}[*] Instalando paquetes de python.\n${endColour}"
+
+# Instalando paquetes de Python
+#sudo pip3 install pwntools --break-system-packages
+#sudo pip2 install pwntools
+#if [ $? != 0 ] && [ $? != 130 ]; then
+#	echo -e "\n${redColour}[-] Falló la instalación de pwntools.\n${endColour}"
+#	sleep 3
+#else
+#	echo -e "\n${greenColour}[+] Done\n${endColour}"
+#	sleep 1.5
+#fi
+
+
+
+
+# Instalando pip2 (solo Parrot 6)
+echo -e "\n\n${blueColour}[*] Instalando pip2.\n${endColour}"
+sleep 2
+
+if ((PARROT6)); then
+    curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py
+    sudo python2 get-pip.py "pip<21" "setuptools<45" "wheel<0.35"
+
+    if [ $? != 0 ] && [ $? != 130 ]; then
+        echo -e "\n${redColour}[-] Falló la instalación de pip2.\n${endColour}"
+        sleep 3
+    else
+        echo -e "\n${greenColour}[+] Done\n${endColour}"
+        sleep 1.5
+    fi
 else
-	echo -e "\n${greenColour}[+] Done\n${endColour}"
-	sleep 1.5
+    echo -e "${yellowColour}[!] Parrot ${OS_MAJOR} detectado: se omite pip2 (Python2 obsoleto).${endColour}"
 fi
 
+
 echo -e "\n\n${blueColour}[*] Instalando paquetes de python.\n${endColour}"
-# Instalando paquetes de Python
+
+# Siempre Python3
 sudo pip3 install pwntools --break-system-packages
-sudo pip2 install pwntools
-if [ $? != 0 ] && [ $? != 130 ]; then
-	echo -e "\n${redColour}[-] Falló la instalación de pwntools.\n${endColour}"
-	sleep 3
+
+# Solo Parrot 6 instala pwntools para python2
+if ((PARROT6)); then
+    sudo pip2 install "pwntools<5"
+
+    if [ $? != 0 ] && [ $? != 130 ]; then
+        echo -e "\n${redColour}[-] Falló la instalación de pwntools (pip2).\n${endColour}"
+        sleep 3
+    else
+        echo -e "\n${greenColour}[+] Done\n${endColour}"
+        sleep 1.5
+    fi
 else
-	echo -e "\n${greenColour}[+] Done\n${endColour}"
-	sleep 1.5
+    echo -e "${yellowColour}[!] Omitiendo pwntools para pip2 en Parrot ${OS_MAJOR}.${endColour}"
 fi
+
+
+
+
+
+
+
+
+
+
 
 # Instalamos las HackNerdFonts
 sudo cp -v $ruta/fonts/HNF/* /usr/local/share/fonts/
