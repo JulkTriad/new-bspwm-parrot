@@ -527,8 +527,9 @@ notify-send "BSPWM INSTALADO"
 
 while true; do
 	echo -en "\n${yellowColour}[?] Instalación completada, es necesario reiniciar el sistema. ¿Deseas reiniciar ahora? ([y]/n) ${endColour}"
-	read -r
+	read -r REPLY </dev/tty
 	REPLY=${REPLY:-"y"}
+	
 	if [[ $REPLY =~ ^[Yy]$ ]]; then
 		echo -e "\n\n${greenColour}[+] Restarting the system...\n${endColor}"
 		sleep 1
