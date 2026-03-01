@@ -511,10 +511,12 @@ else
 	sleep 1.5
 fi
 
-# Actualizando la base de datos de locate
-sudo updatedb
-sudo umount /run/user/1000/gvfs 
-sudo umount /run/user/1000/doc
+# Actualizando la base de datos de locate (no-fatal)
+sudo updatedb 2>/dev/null || true
+
+# Desmontar solo si corresponde (no-fatal)
+sudo umount /run/user/1000/gvfs 2>/dev/null || true
+sudo umount /run/user/1000/doc  2>/dev/null || true
 
 # Actualizando de los paquetes instalados
 sudo apt update
